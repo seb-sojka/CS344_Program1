@@ -1,0 +1,19 @@
+#!/bin/bash
+rowNum=0
+while read row
+do
+	if (($rowNum ==  0)); then
+		for i in $row
+		do
+			colNum=`expr $colNum + 1` 
+		done 
+	fi
+	break 
+done < $1
+
+#Transpose code based on
+#http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
+for j in $(seq 1 $colNum)
+do
+	cut -f"$j" $1 | paste -s
+done
