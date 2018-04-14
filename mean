@@ -1,0 +1,46 @@
+#!/bin/bash
+rowNum=0
+sum=0
+count=0
+tempL=./tempLine
+tempM=./tempMean
+rm -f $tempM
+while read row
+do
+	if (($rowNum ==  0)); then
+		for i in $row
+		do
+			colNum=`expr $colNum + 1` 
+		done 
+	fi
+	break 
+done < $1
+
+#Transpose code based on
+#http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
+for j in $(seq 1 $colNum)
+do
+	cut -f"$j" $1 | paste -s > $tempL
+	while read line
+	do
+		for num in $line
+		do
+			sum=`expr $sum + $num`
+			count=`expr $count + 1`
+		done
+	done <<< "$(cat "$tempL")"
+	round=1
+	if (($sum <= 0)); then
+		round=0
+	fi
+	mean=$(( ($sum + ( $count / 2 ) * ($round * 2 - 1)) / $count ))
+	echo -n $mean >> $tempM
+	if  (($colNum !=  $j)); then
+		echo -en ' \t ' >> $tempM
+	fi
+	rm -f $tempL
+	count=0
+	sum=0
+done
+cat $tempM
+echo ""

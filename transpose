@@ -15,5 +15,5 @@ done < $1
 #http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
 for j in $(seq 1 $colNum)
 do
-	cut -f"$j" $1 | paste -s
+	cut -f"$j" $1
 done
