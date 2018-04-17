@@ -1,0 +1,39 @@
+#!/bin/bash
+m1=./tempm1
+m2=./tempm2
+tSum=./tempsum
+
+rm -f $m1
+rm -f $m2
+while read row
+do
+	
+	for i in $row
+	do
+		echo $i >> $m1	
+	done 
+done < $1 
+
+while read row
+do
+	
+	for i in $row
+	do
+	
+		echo $i >> $m2
+	done 
+done < $2
+
+count=1
+
+while read num
+do
+	sum=`expr $(tail -n +"$count" $m2 |head -n 1) + $(tail -n +"$count" $m1 |head -n 1)`
+	echo -n $sum >> tSum
+	if (($count % 2 == 0 )); then
+		echo >> tSum
+	else
+		echo -ne '\t' >> tSum
+	fi
+	count=`expr $count + 1`
+done < $m2
