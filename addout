@@ -28,12 +28,11 @@ count=1
 
 while read num
 do
-	sum=`expr $(tail -n +"$count" $m2 |head -n 1) + $(tail -n +"$count" $m1 |head -n 1)`
-	echo -n $sum >> tSum
+	sum=`expr $(tail -n +"$count" $2 |head -n 1) + $(tail -n +"$count" $1 |head -n 1)`
 	if (($count % 2 == 0 )); then
-		echo >> tSum
+		echo $sum
 	else
-		echo -ne '\t' >> tSum
+		echo -ne $sum '\t' 
 	fi
 	count=`expr $count + 1`
 done < $m2

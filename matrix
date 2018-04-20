@@ -1,0 +1,137 @@
+#!/bin/bash
+TMP1=./"1temp$$"
+TMP2=./"2temp$$"
+trap "rm -f $TMP1; rm -f $TMP2; echo 'Inter'; exit 1" SIGINT
+
+getDims(){
+	rowNum=0
+	colNum=0
+	if [ "$#" -eq 1 ]; then
+		while read row
+		do	
+			if (($rowNum == 0)); then
+				for i in $row
+				do
+					colNum=`expr $colNum + 1` 
+				done 
+			fi
+		rowNum=`expr $rowNum + 1`
+		done < $1
+	elif [ "$#" -eq 0 ]; then
+		echo no arg passed
+	else
+		echo "Error: Too many args" 1>&2
+		exit 1
+	fi
+}
+
+transpose(){
+	argChecker 1 "$#"
+	getDims $@
+	#Transpose code based on
+	#http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
+	for j in $(seq 1 $colNum)
+	do
+		cut -f"$j" $1 | paste -s
+	done
+}
+
+dims(){
+	argChecker 1 "$#"
+	getDims $@
+	echo -e $colNum $rowNum
+}
+
+argChecker(){	
+	if [ $1 != $2 ]; then
+		echo "Error: Not correct number of args" 1>&2
+		exit 1
+	fi
+}
+
+mean(){
+	argChecker 1 "$#"
+	getDims $@
+	#Transpose code based on
+	#http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
+	sum=0
+	for j in $(seq 1 $colNum)
+	do
+		cut -f"$j" $1 | paste -s > $TMP
+		while read line
+		do
+			for num in $line
+			do
+				sum=`expr $sum + $num`
+				count=`expr $count + 1`
+			done
+		done <<< "$(cat $TMP)"
+		round=1
+		if (($sum <= 0)); then
+			round=0
+		fi
+		mean=$(( ($sum + ( $count / 2 ) * ($round * 2 - 1)) / $count ))
+		echo -n $mean
+		if  (($colNum !=  $j)); then
+			echo -en ' \t '
+		fi
+		rm -f $TMP
+		count=0
+		sum=0
+	done
+	echo ""
+}
+
+add(){
+	argChecker 2 "$#"
+	echo $1
+	getDims $1
+	col1=$colNum
+	row1=$rowNum
+
+	getDims $2
+
+	if [ $col1 -eq $colNum ] && [ $row1 -eq $rowNum ]; then
+		while read row
+		do
+			for i in $row
+			do
+				echo $i >> $TMP1	
+			done 
+		done < $1 
+
+		while read row
+		do
+		for i in $row
+			do
+				echo $i >> $TMP2
+			done 
+		done < $2
+		
+		count=1
+		while read num
+		do
+			sum=`expr $(tail -n +"$count" $TMP2 |head -n 1) + $(tail -n +"$count" $TMP1 |head -n 1)`
+			if (( $count % $colNum == 0 )); then
+				echo $sum
+			else
+				echo -ne $sum '\t'
+			fi
+			count=`expr $count + 1`
+		done < $TMP2
+	else
+		echo "Error: Size of matrix are different" 1>&2
+		exit 1
+	fi
+}
+
+if [ "$#" -ge 2 ]; then
+	for arg in "${@:2}"; do
+		if [ ! -e $arg ]; then	
+			echo "Error: File $arg not found!" 1>&2
+			exit 1
+		fi
+	done
+fi
+$1 "${@:2}"
+rm -f $TMP1; rm -f $TMP2;
