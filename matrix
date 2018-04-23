@@ -21,6 +21,7 @@ getDims(){
 		done < $1
 	else
 		echo "Error: Too many args" 1>&2
+		cleanup
 		exit 1
 	fi
 }
@@ -46,6 +47,7 @@ dims(){
 argChecker(){	
 	if [ $1 != $2 ]; then
 		echo "Error: Not correct number of args" 1>&2
+		cleanup
 		exit 1
 	fi
 }
@@ -121,6 +123,7 @@ add(){
 		done < $TMP2
 	else
 		echo "Error: Size of matrix are different" 1>&2
+		cleanup
 		exit 1
 	fi
 }
@@ -157,6 +160,7 @@ multiply(){
 		done
 	else
 		echo "Error: Number of column in first matrix and number of rows in second matrix are different" 1>&2
+		cleanup
 		exit 1
 	fi
 }
@@ -176,10 +180,21 @@ setupTMP(){
 	chmod u+rwx $TMP3
 }
 
+
 case $1 in
 	multiply)
+		if [ "$#" -ne 3 ]; then
+			echo "ERROR: Not correct number of agr!" 1>&2
+			cleanup
+			exit 1
+		fi
 		;;
 	add)
+		if [ "$#" -ne 3 ]; then
+			echo "ERROR: Not correct number of agr!" 1>&2
+			cleanup
+			exit 1
+		fi
 		;;
 	mean)
 		;;
@@ -189,13 +204,15 @@ case $1 in
 		;;
 	*)
 		echo "Error: Command unavaialable" 1>&2
+		cleanup
 		exit 1
 esac
-		
+	
 if [ "$#" -ge 2 ]; then
 	for arg in "${@:2}"; do
 		if [ ! -r $arg ]; then	
 			echo "Error: File $arg not found or readable!" 1>&2
+			cleanup
 			exit 1
 		fi
 	done
@@ -207,6 +224,7 @@ else
 		$1 $TMP3
 	else
 		echo "Error: Not data found!" 1>&2
+		cleanup
 		exit 1
 	fi
 fi
