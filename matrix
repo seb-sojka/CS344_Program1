@@ -1,7 +1,9 @@
 #!/bin/bash
 TMP1=./"1temp$$"
 TMP2=./"2temp$$"
-trap "rm -f $TMP1; rm -f $TMP2; echo 'Inter'; exit 1" SIGINT
+TMP3=./"3temp$$"
+
+trap "cleanup; echo 'Inter'; exit 1" INT HUP TERM SIGHUP
 
 getDims(){
 	rowNum=0
@@ -17,14 +19,12 @@ getDims(){
 			fi
 		rowNum=`expr $rowNum + 1`
 		done < $1
-	elif [ "$#" -eq 0 ]; then
-		echo no arg passed
 	else
 		echo "Error: Too many args" 1>&2
 		exit 1
 	fi
 }
-
+ 
 transpose(){
 	argChecker 1 "$#"
 	getDims $@
@@ -32,14 +32,15 @@ transpose(){
 	#http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
 	for j in $(seq 1 $colNum)
 	do
-		cut -f"$j" $1 | paste -s
+		cut -f"$j" $1 | paste -s >> $TMP2
 	done
+	cat $TMP2
 }
 
 dims(){
 	argChecker 1 "$#"
 	getDims $@
-	echo -e $colNum $rowNum
+	echo -e $rowNum $colNum
 }
 
 argChecker(){	
@@ -57,7 +58,7 @@ mean(){
 	sum=0
 	for j in $(seq 1 $colNum)
 	do
-		cut -f"$j" $1 | paste -s > $TMP
+		cut -f"$j" $1 | paste -s > $TMP1
 		while read line
 		do
 			for num in $line
@@ -65,7 +66,7 @@ mean(){
 				sum=`expr $sum + $num`
 				count=`expr $count + 1`
 			done
-		done <<< "$(cat $TMP)"
+		done <<< "$(cat $TMP1)"
 		round=1
 		if (($sum <= 0)); then
 			round=0
@@ -73,9 +74,9 @@ mean(){
 		mean=$(( ($sum + ( $count / 2 ) * ($round * 2 - 1)) / $count ))
 		echo -n $mean
 		if  (($colNum !=  $j)); then
-			echo -en ' \t '
+			echo -en '\t'
 		fi
-		rm -f $TMP
+		rm -f $TMP1
 		count=0
 		sum=0
 	done
@@ -84,7 +85,6 @@ mean(){
 
 add(){
 	argChecker 2 "$#"
-	echo $1
 	getDims $1
 	col1=$colNum
 	row1=$rowNum
@@ -115,7 +115,7 @@ add(){
 			if (( $count % $colNum == 0 )); then
 				echo $sum
 			else
-				echo -ne $sum '\t'
+				echo -ne $sum'\t'
 			fi
 			count=`expr $count + 1`
 		done < $TMP2
@@ -125,13 +125,90 @@ add(){
 	fi
 }
 
+multiply(){
+	argChecker 2 "$#"
+	
+	getDims $1
+	col1=$colNum
+	row1=$rowNum
+	getDims $2
+	
+	if [ $col1 -eq $rowNum ]; then
+		for i in $(seq 1 $row1)
+		do
+			sed "${i}q;d" $1 > $TMP2
+			for j in $(seq 1 $colNum)
+			do
+				cut -f"$j" $2 > $TMP1
+				count=1
+				total=0
+				while read num
+				do
+					num=$(cut -f"$count" $TMP2)
+					total=`expr $total + $(tail -n +"$count" $TMP1 |head -n 1) \* $num`
+					count=`expr $count + 1`
+				done < $TMP1
+				if [ $j -lt $colNum ]; then
+					echo -ne $total'\t'
+				else
+					echo $total
+				fi
+			done
+		done
+	else
+		echo "Error: Number of column in first matrix and number of rows in second matrix are different" 1>&2
+		exit 1
+	fi
+}
+
+cleanup(){
+	rm -f $TMP1
+	rm -f $TMP2
+	rm -f $TMP3
+}
+
+setupTMP(){
+	touch $TMP1
+	chmod u+rwx $TMP1
+	touch $TMP2
+	chmod u+rwx $TMP2
+	touch $TMP3
+	chmod u+rwx $TMP3
+}
+
+case $1 in
+	multiply)
+		;;
+	add)
+		;;
+	mean)
+		;;
+	transpose)
+		;;
+	dims)
+		;;
+	*)
+		echo "Error: Command unavaialable" 1>&2
+		exit 1
+esac
+		
 if [ "$#" -ge 2 ]; then
 	for arg in "${@:2}"; do
-		if [ ! -e $arg ]; then	
-			echo "Error: File $arg not found!" 1>&2
+		if [ ! -r $arg ]; then	
+			echo "Error: File $arg not found or readable!" 1>&2
 			exit 1
 		fi
 	done
+	$1 "${@:2}"
+else
+	cat > $TMP3
+	wcount=($(wc -c < $TMP3 ))
+	if [ $wcount -ne 0 ]; then
+		$1 $TMP3
+	else
+		echo "Error: Not data found!" 1>&2
+		exit 1
+	fi
 fi
-$1 "${@:2}"
-rm -f $TMP1; rm -f $TMP2;
+
+cleanup
