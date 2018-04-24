@@ -1,14 +1,19 @@
 #!/bin/bash
+
+#Program allows user to find dimension, mean, and tranpsose a matrix and add and mutliply matrices and display the resutls
+
+#Temp files
 TMP1=./"1temp$$"
 TMP2=./"2temp$$"
 TMP3=./"3temp$$"
 
-trap "cleanup; echo 'Inter'; exit 1" INT HUP TERM SIGHUP
+trap "cleanup; echo 'Inter'; exit 1" INT HUP TERM SIGHUP #Cleans up program in case of interrupt 
 
+#Gets the dimension of a matrix. Returns two variables, rowNum and colNum
 getDims(){
 	rowNum=0
 	colNum=0
-	if [ "$#" -eq 1 ]; then
+	if [ "$#" -eq 1 ]; then #if agr passed not equal then show error
 		while read row
 		do	
 			if (($rowNum == 0)); then
@@ -26,8 +31,9 @@ getDims(){
 	fi
 }
  
+ #Tranpsoes a 
 transpose(){
-	argChecker 1 "$#"
+	argChecker 1 "$#" #checks agr number
 	getDims $@
 	#Transpose code based on
 	#http://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
@@ -38,12 +44,14 @@ transpose(){
 	cat $TMP2
 }
 
+#Prints out dimension
 dims(){
 	argChecker 1 "$#"
 	getDims $@
 	echo -e $rowNum $colNum
 }
 
+#Makes sure the args number is correct
 argChecker(){	
 	if [ $1 != $2 ]; then
 		echo "Error: Not correct number of args" 1>&2
@@ -52,6 +60,7 @@ argChecker(){
 	fi
 }
 
+#Finds mean of matrix
 mean(){
 	argChecker 1 "$#"
 	getDims $@
@@ -85,6 +94,7 @@ mean(){
 	echo ""
 }
 
+#Add matrices together
 add(){
 	argChecker 2 "$#"
 	getDims $1
@@ -128,6 +138,7 @@ add(){
 	fi
 }
 
+#Multiply matrices together
 multiply(){
 	argChecker 2 "$#"
 	
@@ -165,24 +176,17 @@ multiply(){
 	fi
 }
 
+#Reomces the temp file
 cleanup(){
 	rm -f $TMP1
 	rm -f $TMP2
 	rm -f $TMP3
 }
 
-setupTMP(){
-	touch $TMP1
-	chmod u+rwx $TMP1
-	touch $TMP2
-	chmod u+rwx $TMP2
-	touch $TMP3
-	chmod u+rwx $TMP3
-}
-
-
+#Checks to see if the command is valid
 case $1 in
 	multiply)
+		#makes sure there are 2 matrix to multiply
 		if [ "$#" -ne 3 ]; then
 			echo "ERROR: Not correct number of agr!" 1>&2
 			cleanup
@@ -190,6 +194,7 @@ case $1 in
 		fi
 		;;
 	add)
+		#makes sure there are 2 matrix to add
 		if [ "$#" -ne 3 ]; then
 			echo "ERROR: Not correct number of agr!" 1>&2
 			cleanup
@@ -203,13 +208,16 @@ case $1 in
 	dims)
 		;;
 	*)
+		#if command is not avialable then print error
 		echo "Error: Command unavaialable" 1>&2
 		cleanup
 		exit 1
 esac
 	
+#To read file or stdin
 if [ "$#" -ge 2 ]; then
 	for arg in "${@:2}"; do
+		#Make sure file is readable and existing
 		if [ ! -r $arg ]; then	
 			echo "Error: File $arg not found or readable!" 1>&2
 			cleanup
@@ -219,6 +227,8 @@ if [ "$#" -ge 2 ]; then
 	$1 "${@:2}"
 else
 	cat > $TMP3
+	
+	#Make sure inputs is something
 	wcount=($(wc -c < $TMP3 ))
 	if [ $wcount -ne 0 ]; then
 		$1 $TMP3
@@ -229,4 +239,5 @@ else
 	fi
 fi
 
+#cleanup temp files
 cleanup
